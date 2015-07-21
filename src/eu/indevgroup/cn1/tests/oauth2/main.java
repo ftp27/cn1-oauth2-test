@@ -8,6 +8,11 @@ import com.codename1.ui.Button;
 import com.codename1.ui.Dialog;
 import com.codename1.ui.Display;
 import com.codename1.ui.Form;
+import com.codename1.social.FacebookConnect;
+import com.codename1.social.GoogleConnect;
+import com.codename1.social.VkontakteConnect;
+import com.codename1.social.Login;
+import com.codename1.social.LoginCallback;
 import com.codename1.ui.Label;
 import com.codename1.ui.events.ActionEvent;
 import com.codename1.ui.events.ActionListener;
@@ -36,30 +41,42 @@ public class main {
             current.show();
             return;
         }
-        Form hi = new Form("oAuth2-test");
-        hi.setLayout(new GridLayout(2, 1));
-        Button fbButton = new Button("Facebook");
-        Hashtable fbParams = new Hashtable();
-        fbParams.put("display","touch");
-        Button gpButton = new Button("Google Plus");
-        Hashtable gpParams = new Hashtable();
-        gpParams.put("v",       "5.34");
-        gpParams.put("display", "mobile");
         
+        Form hi = new Form("oAuth2-test");
+        hi.setLayout(new GridLayout(4, 1));
+        Label status = new Label("");
+        Button fbButton = new Button("Facebook");
         fbButton.addActionListener(getSocialListener(
-            "https://www.facebook.com/dialog/oauth",
-            "123456789012345",
-            "email,public_profile",
-            fbParams
+            status,    
+            FacebookConnect.getInstance(), 
+            "rest-auth/facebook/", 
+            "5c0e954dbcbdd805e920527b98bdec78",
+            "417297645125254"
         ));
+        
+        Button gpButton = new Button("Google Plus");
         gpButton.addActionListener(getSocialListener(
-            "https://accounts.google.com/o/oauth2/auth",
-            "123456789012-no03e50bn04n5j95054r8phduo0ibsub.apps.googleusercontent.com",
-            "email",
-            gpParams
+            status,
+            GoogleConnect.getInstance(), 
+            "rest-auth/google/", 
+            "cSW__XE1CphdSWUSt0d3OjkE",
+            "679089336538-no03e50bn04n5j95054r8phduo0ibsub.apps.googleusercontent.com"
         ));
+        
+        Button vkButton = new Button("Vkontakte");
+        vkButton.addActionListener(getSocialListener(
+            status,
+            VkontakteConnect.getInstance(), 
+            "rest-auth/vk/", 
+            "Auo437BTJlLLcxcFg8fG",
+            "4973969"
+        ));
+        
         hi.addComponent(fbButton);
         hi.addComponent(gpButton);
+        hi.addComponent(vkButton);
+        hi.addComponent(status);
+        
         hi.show();
     }
 
@@ -70,31 +87,33 @@ public class main {
     public void destroy() {
     }
 
-    private ActionListener getSocialListener(final String URL, final String clientId, final String scope, final Hashtable params) {
+    private ActionListener getSocialListener(final Label status, final Login socialLogin, String redirect, String secret, String id) {
+        socialLogin.setClientId(id);
+        socialLogin.setRedirectURI("http://lk2.beta.indev-group.eu/" + redirect);
+        socialLogin.setClientSecret(secret);
+        socialLogin.setCallback(new LoginCallback() {
+
+            @Override
+            public void loginSuccessful() {
+                status.setText("Successful: "+socialLogin.getAccessToken().getToken());
+            }
+
+            @Override
+            public void loginFailed(String errorMessage) {
+                status.setText("Failed: "+errorMessage);
+            }
+            
+            
+            
+        });
         return new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
-                Oauth2 fbOauth2 = new Oauth2(
-                    URL, 
-                    clientId, 
-                    "someurl.com/",
-                    scope, null, null, params
-                );
-                final Dialog authDialog = new Dialog();
-                authDialog.setLayout(new BorderLayout());
-                authDialog.addComponent(BorderLayout.CENTER, 
-                    fbOauth2.createAuthComponent(new ActionListener() {
-                        public void actionPerformed(ActionEvent evt) {
-                            authDialog.dispose();
-                        }
-                    })
-                );
-                try {
-                    authDialog.show(0,0,0,0);
-                } catch (Exception e) {
-                    
+                if(!socialLogin.isUserLoggedIn()){
+                    socialLogin.doLogin();
                 }
             }            
         };
+        
     }
     
 }
